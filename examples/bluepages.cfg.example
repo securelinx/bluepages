@@ -1,0 +1,41 @@
+[DEFAULT]
+password = !!
+shell = /sbin/nologin
+basedir = /home
+
+[global]
+db = yp.db
+passwd = /var/yp/src/passwd
+group = /var/yp/src/group
+
+[directory]
+domain = example.domain
+dc = dc01.example.domain
+dn = DC=example,DC=domain
+binduser = binduser@%(domain)s
+bindpw = Passw0rd
+sid_offset = 100000000
+sid_slice = 200000
+
+[ldap]
+uri = ldap://localhost
+dn = dc=ldap,dc=example,dc=com
+binddn = cn=Directory Manager
+bindpw = Passw0rd
+users_ou = ou=People,%(dn)s
+groups_ou = ou=Groups,%(dn)s
+
+[group:research]
+name = research
+gid = 2001
+dn = CN=Research Users,OU=Groups,DC=example,DC=domain
+provisioning = yes
+shell = /bin/bash
+
+[group:admins]
+name = wheel
+gid = 2002
+dn = CN=UNIX Admins,OU=UNIX Groups,DC=example,DC=domain
+provisioning = yes
+shell = /bin/bash
+

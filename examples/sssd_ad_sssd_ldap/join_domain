@@ -1,0 +1,49 @@
+#!/bin/bash
+
+##Run this script and specify options for your active diretory domain
+#OU="ou=Computers"
+#domain="example.com"
+#user=adminuser
+usage_and_exit() {
+
+  echo usage     
+  echo $0 -u adminusername -d domain -o ou
+  exit 1
+}
+while getopts "hu:d:o:" arg; do
+  case $arg in
+    h)
+      echo "usage"
+      usage_and_exit
+      
+
+      ;;
+    u)
+      user=$OPTARG
+      echo $user
+      ;;
+    o)
+      OU="$OPTARG"
+      ;;
+    d)
+      domain="$OPTARG"
+      ;;
+  esac
+done
+if [ -z "$USER" ] || [  -z "$OU" ]  || [ -z "$domain" ]  ; then
+   usage_and_exit
+fi
+
+
+realm discover "$domain"
+/bin/cp reamd.conf /etc/realmd.conf
+/bin/cp krb5.conf /etc/krb5.conf
+realm join -v --user=$user --computer-ou="$OU"  --membership-software=adcli $domain
+cp -p sssd.conf /etc/sssd/sssd.conf
+chown root.root /etc/realmd.conf /etc/krb5.conf /etc/sssd/sssd.conf 
+chmod 0600 /etc/sssd/sssd.conf
+# Update all is sometimes needed to update nsswitch.conf
+authconfig --updateall  --enablesssd --enablesssdauth --disablenis
+/usr/sbin/service sssd restart
+/usr/sbin/service realmd restart
+
