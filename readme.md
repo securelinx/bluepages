@@ -5,7 +5,7 @@ BluePages is a set of tools to populate a yp/NIS or LDAP database with user entr
 
 ## How to use BluePages
 
-1. Configure your `bluepages.cfg` file based on the included example to configure the details for NIS, AD & LDAP, as well as the AD groups to reference.  Copy to the same directory as the included python scripts.
+1. Configure your `bluepages.cfg` file based on the included example to configure the details for NIS, AD & LDAP, as well as the AD groups to reference.
 
 1. [Optional] Run the `passwd2db.py` script to import an existing passwd file format to the database as user entries
 
