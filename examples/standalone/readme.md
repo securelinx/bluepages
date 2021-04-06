@@ -1,0 +1,2 @@
+# Standalone Scenario
+Though it is expected to run BluePages with an AD to connect to this is not required. As shown with this example configuration, if the `[directory]` section is not defined by the configuration then a sync operation will skip connecting to the directory and just use local data. Since `manual` users are never 'provisioned' the only effect of a sync in this scenario is to update group membership, where this is defined in the configuration file.
