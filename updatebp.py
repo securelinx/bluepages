@@ -84,16 +84,22 @@ config.read(['/etc/bluepages.cfg', os.path.expanduser('~/.bluepages.cfg'), './bl
 description="A script to update a user in the bluepages sqlite database."
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('-d', '--db', metavar="DATABASE", 
-        default=config.get('global', 'db', fallback='bp.db'))
+        default=config.get('global', 'db', fallback='bp.db'), 
+        help='File path to the blue pages database file')
 parser.add_argument('--delete', action="store_true")
 parser.add_argument('-v', '--verbose', action="store_true")
-parser.add_argument('username')
-parser.add_argument('-b', '--batchmode', action="store_true")
+parser.add_argument('username', 
+        help='The user name in the identity provider to operate on' )
+parser.add_argument('-b', '--batchmode', action="store_true", 
+        help='Run unattended and accept default values')
 args = parser.parse_args()
 
 if not os.path.exists(args.db):
     print("ERROR: File %s not found!" % (args.db))
     sys.exit(1)
+
+if args.batchmode:
+   print ( "Running in batch mode")
 
 try:
     con = sqlite3.connect(args.db)
@@ -106,9 +112,6 @@ cur = con.cursor()
 # search database to see if username parameter refers to an existing user
 sql="""SELECT * FROM passwd WHERE name = ?"""
 r =  cur.execute(sql, (args.username, )).fetchone()
-
-if args.batchmode:
-   print ( "Running in batch mode")
 
 if r:
     if args.delete:
@@ -131,13 +134,15 @@ else:
     # find the config file block for the first configured group,
     # whatever that happens to be.
     group = config['DEFAULT']
-    basehome = group.get('basedir', '/home')
     
     for section in config:
         if "group:" not in section:
             continue
         group = config[section]
         break
+    
+    # Set a default home directory base
+    basehome = group.get('basedir', '/home')
 
     # set the givenName and sn fields to the same as the username
     # unless it splits (eg firstname.lastname format)
