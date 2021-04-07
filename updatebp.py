@@ -11,8 +11,6 @@ import sys
 import os
 import distutils.util
 
-batchmode = False
-
 def pick_uid(cur):
     """
     Pick the first free uid from a 'manual' range, which is defined as the 
@@ -28,16 +26,8 @@ def pick_uid(cur):
 
     return str(uid)
 
-def bp_input(prompt):
-    if batchmode: 
-       return ""
-    return input(prompt)
-
 def validate(entry, field):
     """Do some very very basic valdation of the input for the user fields"""
-    if batchmode: 
-        return True
-
     if field in ['UID', 'GID']:
         try:
             int(entry)
@@ -82,7 +72,7 @@ def confirm(question, default='yes'):
 
     while True:
         try:
-            resp = bp_input(question + prompt).strip().lower() or default
+            resp = input(question + prompt).strip().lower() or default
             return distutils.util.strtobool(resp)
         except ValueError:
             return confirm("Please respond with 'yes' or 'no'")
@@ -117,19 +107,14 @@ cur = con.cursor()
 sql="""SELECT * FROM passwd WHERE name = ?"""
 r =  cur.execute(sql, (args.username, )).fetchone()
 
-try:
-   basehome = config['DEFAULT']['basedir']
-except:
-   basehome='/home'
 if args.batchmode:
-   batchmode = True 
    print ( "Running in batch mode")
 
 if r:
     if args.delete:
         print("If you delete a user who exists still in AD they will be re-created!")
         print("In most cases setting the user status to disabled will be more useful")
-        if confirm(f"Are you really sure you want to delete {args.username}?", "no"):
+        if args.batchmode or confirm(f"Are you really sure you want to delete {args.username}?", "no"):
             sql="""DELETE FROM passwd WHERE name = ?"""
             cur.execute(sql, (args.username, ))
             con.commit()
@@ -146,6 +131,7 @@ else:
     # find the config file block for the first configured group,
     # whatever that happens to be.
     group = config['DEFAULT']
+    basehome = group.get('basedir', '/home')
     
     for section in config:
         if "group:" not in section:
@@ -153,12 +139,14 @@ else:
         group = config[section]
         break
 
-    name = args.username.split('.')
-    if len(name) > 1:
-      sn="-".join(name[1:])
-    else:
-      sn=""
-    givenname=name[0]
+    # set the givenName and sn fields to the same as the username
+    # unless it splits (eg firstname.lastname format)
+    givenName = args.username
+    sn = args.username
+    try:
+        (givenName, sn) = args.username.title().split('.',1)
+    except:
+        pass
 
     # build a dict with some defaults for a new user    
     user = {'name': args.username,
@@ -166,8 +154,8 @@ else:
             'password': "!!",
             'UID': pick_uid(cur),
             'GID': group.get('gid', '99'),
-            'GECOS': " ".join( (givenname,  sn)  ),
-            'givenName': givenname,
+            'GECOS': " ".join( (givenName,  sn)  ),
+            'givenName': givenName,
             'sn': sn,
             'directory': os.path.join( basehome, args.username ),
             'shell': group.get('shell', '/sbin/nologin'),
@@ -180,8 +168,8 @@ user_fields = ['name', 'sAMAccountName', 'password', 'UID', 'GID', 'GECOS',
 
 for field in user_fields:
     valid = False
-    while not valid:
-        entry = bp_input(f"{field} [{user[field]}]: ") or user[field]
+    while not valid and not args.batchmode:
+        entry = input(f"{field} [{user[field]}]: ") or user[field]
         valid = validate(entry, field)
         if valid:
             user[field] = entry
@@ -191,7 +179,7 @@ for field in user_fields:
     print(f"{field:>14}: {user[field]}")
 print("")
 
-if not confirm("Are you sure you want to update bluepage database with these values?"):
+if not args.batchmode and not confirm("Are you sure you want to update bluepage database with these values?"):
     sys.exit(0)
 
 # delete any previous entry for this user. use the supplied username
