@@ -159,7 +159,6 @@ for section in config:
 
     # need to make a list of all the group members.
     group_members = []
-
     # add in any from the config file 
     if 'members' in group:
         group_members = group.get('members').split(',')

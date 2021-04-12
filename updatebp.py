@@ -87,6 +87,7 @@ parser.add_argument('-d', '--db', metavar="DATABASE",
         default=config.get('global', 'db', fallback='bp.db'), 
         help='File path to the blue pages database file')
 parser.add_argument('--delete', action="store_true")
+parser.add_argument('-s', '--status',  default=None, help='change the user status')
 parser.add_argument('-v', '--verbose', action="store_true")
 parser.add_argument('username', 
         help='The user name in the identity provider to operate on' )
@@ -125,13 +126,17 @@ if r:
         sys.exit(0)
 
     user = dict(zip([c[0] for c in cur.description], r))
+
 else:
     if args.delete:
         print(f"ERROR: Could not find user {args.username}")
         sys.exit(1)
     print(f"Could not find existing entry for {args.username}, proceeding will create a new entry.")
-
-    # find the config file block for the first configured group,
+    if args.status:
+         status = args.status
+    else:
+         status = 'manual'
+    # find the config file block for the default group,
     # whatever that happens to be.
     group = config['DEFAULT']
     
@@ -139,7 +144,12 @@ else:
         if "group:" not in section:
             continue
         group = config[section]
-        break
+        try:
+           if distutils.util.strtobool ( config[section].get('default_group') ) :
+               break
+        except: 
+           pass
+       
     
     # Set a default home directory base
     basehome = group.get('basedir', '/home')
@@ -164,12 +174,18 @@ else:
             'sn': sn,
             'directory': os.path.join( basehome, args.username ),
             'shell': group.get('shell', '/sbin/nologin'),
-            'status': 'manual'}
+            'status': status }
+
+
+# Read any command line parameters to override default or those set
+if args.status:
+    user['status'] = args.status
 
 # for all the fields that exist for the user step through these 
 # so values can be set
 user_fields = ['name', 'sAMAccountName', 'password', 'UID', 'GID', 'GECOS', 
   'givenName', 'sn', 'directory', 'shell', 'status']
+
 
 for field in user_fields:
     valid = False

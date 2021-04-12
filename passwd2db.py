@@ -19,6 +19,8 @@ parser.add_argument('-d', '--db', metavar="DATABASE",
          default=config.get('global', 'db', fallback='bp.db'))
 parser.add_argument('-p', '--passwd', metavar="FILE", 
         default=config.get('global', 'passwd', fallback='/etc/passwd'))
+parser.add_argument('-s', '--status',  default="inactive", help='initial user status (default: inactive)')
+
 args = parser.parse_args()
 
 if os.path.exists(args.db):
@@ -51,7 +53,7 @@ with open(args.passwd) as f:
             continue
 
         # by default set all users to inactive
-        status = "inactive"
+        status = args.status
 
         # set the givenName and sn fields to the same as the username
         # unless it splits (eg firstname.lastname format)

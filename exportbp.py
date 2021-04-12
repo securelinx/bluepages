@@ -44,6 +44,9 @@ previous_ldap_users = {}
 previous_ldap_groups = {}
 if 'ldap' in config:
     # connect to the directory.
+    if config["ldap"].get("tls_reqcert"):
+        ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+
     directory = ldap.initialize(f"{config['ldap']['uri']}")
     directory.simple_bind_s(config['ldap']['binddn'],
                     config['ldap']['bindpw'])
@@ -95,7 +98,9 @@ with open(args.passwd, 'w') as f:
         if directory:
             # create DN for new user
             user_dn = f"uid={user['name']},{config['ldap']['users_ou']}"
-
+            gecos = user['GECOS']
+            if "" == gecos:
+               gecos = user['name']
             attrs = {}
             attrs['objectClass'] = [b'top', b'person', b'organizationalPerson', 
                     b'inetorgperson', b'posixAccount']
@@ -107,7 +112,7 @@ with open(args.passwd, 'w') as f:
             attrs['gidNumber'] = [user['GID'].encode()]
             attrs['loginShell'] = [user['shell'].encode()]
             attrs['homeDirectory'] = [user['directory'].encode()]
-            attrs['gecos'] = [user['GECOS'].encode()]
+            attrs['gecos'] = [gecos.encode()]
 
             # create or update user ldap entry
             if user_dn in previous_ldap_users:
