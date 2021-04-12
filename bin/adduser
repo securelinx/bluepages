@@ -1,0 +1,15 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd ${DIR}/..
+
+if [ -z "$1" ] ; then
+ echo usage $0 username
+ exit 1
+
+fi
+./updatebp.py -b $1 -s manual
+./exportbp.py 
+./setldappasswd.py $1
+
+rsync -a /etc/skel/ /home/$1/
+chown -R "$1": /home/$1/

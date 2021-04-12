@@ -1,0 +1,12 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd $DIR
+if [ -z "$1" ] ; then
+ echo usage $0 username
+ exit 1
+
+fi
+./updatebp.py --delete  $1
+./exportbp.py 
+sss_cache -E
+echo NOT deleting any data in /home/$1/
