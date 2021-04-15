@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set this if you want to get alerts by email if there is an issue
-MAILTO="admins@example.com"
+# MAILTO="admins@example.com"
 
 # Where your bluepages is installed
 BP="/opt/securelinx/bluepages"
