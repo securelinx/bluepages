@@ -13,6 +13,14 @@ import json
 import collections
 import ldap, ldap.modlist
 
+
+# https://serverfault.com/q/885324
+def get_smb_user_sid(uid):
+    sid = config["samba"].get("sid")
+    smbuid = int(uid) * 2 + 1000
+    return f"{sid}-{smbuid}"
+
+
 config = configparser.ConfigParser()
 config.read(['/etc/bluepages.cfg', os.path.expanduser('~/.bluepages.cfg'), './bluepages.cfg'])
 
@@ -72,6 +80,13 @@ if 'ldap' in config:
     for (dn, attrs) in results:
         previous_ldap_groups[dn] = attrs
 
+samba = False
+user_object_class = [b'top', b'person', b'organizationalPerson', b'inetorgperson', b'posixAccount']
+if 'samba' in config:
+    samba = True
+    user_object_class = [b'top', b'person', b'organizationalPerson', b'inetorgperson', b'posixAccount', b'sambaSamAccount']
+
+
 
 # get all users who are not inactive or disabled. 
 sql="""SELECT * FROM passwd 
@@ -102,8 +117,7 @@ with open(args.passwd, 'w') as f:
             if "" == gecos:
                gecos = user['name']
             attrs = {}
-            attrs['objectClass'] = [b'top', b'person', b'organizationalPerson', 
-                    b'inetorgperson', b'posixAccount']
+            attrs['objectClass'] = user_object_class
             attrs['cn'] = [user['name'].encode()]
             attrs['uid'] = [user['name'].encode()]
             attrs['sn'] = [user['sn'].encode()]
@@ -113,6 +127,9 @@ with open(args.passwd, 'w') as f:
             attrs['loginShell'] = [user['shell'].encode()]
             attrs['homeDirectory'] = [user['directory'].encode()]
             attrs['gecos'] = [gecos.encode()]
+
+            if samba:
+                attrs['sambaSID'] = [get_smb_user_sid(user['UID']).encode()]
 
             # create or update user ldap entry
             if user_dn in previous_ldap_users:
