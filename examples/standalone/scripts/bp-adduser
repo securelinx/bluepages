@@ -1,0 +1,47 @@
+#!/bin/bash
+
+BASE=/opt/slx/bluepages/
+OU="ou=people,dc=example,dc=com"
+
+username=$1
+
+# check usage
+if [[ -z "$username" ]]; then
+	echo "Usage: $0 <username>"
+	exit 1
+fi
+
+# check if this username already exists
+id $username &>/dev/null
+if [[ $? -eq 0 ]]; then
+	echo "The account $username already exists"
+	exit 2
+fi
+
+if [[ $EUID -ne 0 ]]; then
+	echo "This script must be ran as root"
+	exit 3
+fi
+
+# create the user account with all default values
+$BASE/updatebp.py -b $username
+
+# export to ldap 
+$BASE/exportbp.py
+
+pwfile=$(mktemp)
+chmod 600 $pwfile
+pwgen -1 16 > $pwfile
+
+if [[ -x /usr/bin/ldappasswd ]]; then
+	ldappasswd -w $(cat /etc/ldap.secret) -T $pwfile  -x -Z -D "CN=Directory Manager" uid=${username},${OU}
+fi
+
+# set samba password (if installed)
+if [[ -x /usr/bin/smbpasswd ]]; then
+	cat $pwfile $pwfile | smbpasswd  -s $username
+fi
+
+
+echo "The account $username has been set with password: $(cat $pwfile)"
+echo "Please record this password as it can not be retrieved again"

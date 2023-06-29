@@ -1,0 +1,23 @@
+#!/bin/bash
+
+BASE=/opt/slx/bluepages/
+
+username=$1
+
+# check usage
+if [[ -z "$username" ]]; then
+	echo "Usage: $0 <username>"
+	exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be ran as root"
+    exit 3
+fi  
+
+# update the user account
+$BASE/updatebp.py -s manual -b $username
+
+# export to ldap 
+$BASE/exportbp.py
+
