@@ -28,7 +28,7 @@ chmod 600 $pwfile
 pwgen -1 16 > $pwfile
 
 if [[ -x /usr/bin/ldappasswd ]]; then
-	ldappasswd -w $(cat /etc/ldap.secret) -T $pwfile  -x -Z -D "CN=Directory Manager" uid=${username},${OU}
+	ldappasswd -w $(cat /etc/ldap.secret) -s $(cat $pwfile) -x -Z -D "CN=Directory Manager" uid=${username},${OU}
 fi
 
 # set samba password (if installed)

@@ -29,19 +29,3 @@ $BASE/updatebp.py -b $username
 # export to ldap 
 $BASE/exportbp.py
 
-pwfile=$(mktemp)
-chmod 600 $pwfile
-pwgen -1 16 > $pwfile
-
-if [[ -x /usr/bin/ldappasswd ]]; then
-	ldappasswd -w $(cat /etc/ldap.secret) -T $pwfile  -x -Z -D "CN=Directory Manager" uid=${username},${OU}
-fi
-
-# set samba password (if installed)
-if [[ -x /usr/bin/smbpasswd ]]; then
-	cat $pwfile $pwfile | smbpasswd  -s $username
-fi
-
-
-echo "The account $username has been set with password: $(cat $pwfile)"
-echo "Please record this password as it can not be retrieved again"
