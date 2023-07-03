@@ -1,43 +1,84 @@
 #!/bin/bash
-
+#
 BASE=/opt/slx/bluepages/
 OU="ou=people,dc=example,dc=com"
-
+ADMINCN="CN=Directory Manager"
 username=$1
+# Environment files on RHEL and Ubuntu
+test -f /etc/sysconfig/bluepages && source /etc/sysconfig/bluepages
+test -f /etc/default/bluepages && source /etc/default/bluepages
 
 # check usage
-if [[ -z "$username" ]]; then
-	echo "Usage: $0 <username>"
+# Root user must specify a username
+if [[ $EUID -eq 0 ]]; then
+   if [[ -z "$username" ]]; then
+  	echo "Usage: $0 <username>"
 	exit 1
+   fi
+#none toor username, user is ignored
+else
+     if [[ -n "$username" ]]; then
+	     echo Ignoring username specified from cmdline. Option only valid as root.
+     fi
+     username=$USER
 fi
 
 # check if this username exists
 id $username &>/dev/null
+
 if [[ $? -ne 0 ]]; then
 	echo "The account $username does not exist"
 	exit 2
 fi
 
-if [[ $EUID -ne 0 ]]; then
-    echo "This script must be ran as root"
-    exit 3
-fi  
-
 pwfile=$(mktemp)
 chmod 600 $pwfile
-pwgen -1 16 > $pwfile
+PASSWORD=""
+NPASS=""
+
+if [ "$EUID" -eq 0 ] ;then
+   pwgen -1 16 > $pwfile
+   PASSWORD="$(cat /etc/ldap.secret)"
+   NPASS=$(cat $pwfile)
+   CN="$ADMINCN"
+else
+   READARGS="-s"
+   read $READARGS -p "Old Password: " PASSWORD
+   echo
+   read $READARGS -p "New Password: " NPASS
+   echo
+   read $READARGS -p "Re-enter Password: " NPASSCHECK
+   if [ "$NPASS" != "$NPASSCHECK" ]; then
+      echo "New passwords dont match"
+      exit 1
+   fi
+   CN=uid=${username},${OU}
+   echo $NPASS > "$pwfile"
+fi
+
 
 if [[ -x /usr/bin/ldappasswd ]]; then
-	ldappasswd -w $(cat /etc/ldap.secret) -s $(cat $pwfile) -x -Z -D "CN=Directory Manager" uid=${username},${OU}
+	ldappasswd -w "${PASSWORD}" -s "$NPASS" -x -Z -D "$CN" uid=${username},${OU}
 fi
-
 # set samba password (if installed)
 if [[ -x /usr/bin/smbpasswd ]]; then
-	cat $pwfile $pwfile | smbpasswd  -s $username
+    if [ "$EUID" -eq 0 ]; then
+	cat $pwfile $pwfile | smbpasswd  -s "$username" 
+    else
+        OLDPWDFILE=$(mktemp)
+        chmod 600 $OLDPWDFILE
+
+        echo "$PASSWORD" >  $OLDPWDFILE
+        cat $OLDPWDFILE $pwfile $pwfile | smbpasswd > /dev/null
+        rm -f $OLDPWDFILE
+    fi
 fi
 
+if [ "$EUID" -eq 0 ]; then
+    echo "The account $username has been set with password: $(cat $pwfile)"
+    echo "Please record this password as it can not be retrieved again"
+else
+    echo "The account $username has been reset"
+fi
 
-echo "The account $username has been set with password: $(cat $pwfile)"
-echo "Please record this password as it can not be retrieved again"
-
-rm $pwfile
+rm -f $pwfile

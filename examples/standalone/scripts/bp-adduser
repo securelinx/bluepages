@@ -2,8 +2,10 @@
 
 BASE=/opt/slx/bluepages/
 OU="ou=people,dc=example,dc=com"
-
 username=$1
+# Environment files on RHEL and Ubuntu
+test -f /etc/sysconfig/bluepages && source /etc/sysconfig/bluepages
+test -f /etc/default/bluepages && source /etc/default/bluepages
 
 # check usage
 if [[ -z "$username" ]]; then
