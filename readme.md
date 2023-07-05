@@ -19,11 +19,11 @@ BluePages is a set of tools to populate a yp/NIS or LDAP database with user entr
 
 ## Configuring Linux systems ##
 
-Bluepages is designed to fill the gap between active directory provided users and groups and the posix attributes required for consistent users and group ids in unix environment where there may be one or more networked filesystems.  The client side configuration should use kerberos against your existing AD for authentication (eg through pam_krb5 or sssd_ad) and ldap or nis for identities (eg through directly ldap, sssd_ldap, nis directly or sssd_proxy for NIS).  The reference case uses sssd_ad with sssd_ldap.  For the reference case to work, systems need to be 
+BluePages is designed to fill the gap between Active Directory provided users and groups and the POSIX attributes required for consistent user and group IDs in a Unix environment where there may be one or more networked filesystems.  The client side configuration should use kerberos against your existing AD for authentication (eg through pam_krb5 or sssd_ad) and LDAP or NIS for identities (eg through directly ldap, sssd_ldap, nis directly or sssd_proxy for NIS).  The reference case uses sssd_ad with sssd_ldap.  For the reference case to work, systems need to be 
 
-1. Joined the the active direcory, or you are in posession of an account with domain join and computer creation privs.
+1. Joined to the Active Direcory, or you are in posession of an account with domain join and computer creation privs.
 
-1. Able to contact the bluepages ldap server and have appropriate read access to users and groups
+1. Able to contact the BluePages LDAP server and have appropriate read access to users and groups
 
 A full worked example for the reference case is provided in examples/sssd_ad_sssd_ldap
 
